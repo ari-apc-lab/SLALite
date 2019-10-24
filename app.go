@@ -21,6 +21,7 @@ import (
 	"SLALite/utils"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -159,6 +160,7 @@ func (a *App) initialize(repository model.IRepository) {
 
 	a.Router.Methods("POST").Path("/create-agreement").Handler(logger(a.CreateAgreementFromTemplate))
 
+	a.Router.Methods("POST").Path("/notifications").Handler(logger(a.ReceiveNotification))
 }
 
 // Run starts the REST API
@@ -747,6 +749,18 @@ func (a *App) CreateAgreementFromTemplate(w http.ResponseWriter, r *http.Request
 
 			return &out, nil
 		})
+}
+
+// ReceiveNotification is an endpoint to test the sending of notifications to
+// external endpoints
+func (a *App) ReceiveNotification(w http.ResponseWriter, r *http.Request) {
+
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		manageError(err, w)
+		return
+	}
+	log.Infof("Received notification: %s", buf)
 }
 
 func manageError(err error, w http.ResponseWriter) {

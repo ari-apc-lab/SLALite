@@ -21,6 +21,7 @@ import (
 	"SLALite/assessment/monitor/genericadapter"
 	"SLALite/assessment/notifier"
 	"SLALite/assessment/notifier/lognotifier"
+	"SLALite/assessment/notifier/rest"
 	"SLALite/model"
 	"SLALite/repositories/memrepository"
 	"SLALite/repositories/mongodb"
@@ -79,7 +80,13 @@ func main() {
 	adapter := genericadapter.New(
 		genericadapter.DummyRetriever{Size: 3}.Retrieve(),
 		genericadapter.Identity)
-	notifier := lognotifier.LogNotifier{}
+
+	var notifier notifier.ViolationNotifier
+	if config.GetString(rest.NotificationURLPropertyName) != "" {
+		notifier = rest.New(config)
+	} else {
+		notifier = lognotifier.LogNotifier{}
+	}
 	repo, _ = validation.New(repo, validater)
 	if repo != nil {
 		a, _ := NewApp(config, repo, validater)
