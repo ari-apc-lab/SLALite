@@ -19,6 +19,7 @@ import (
 	"SLALite/assessment"
 	"SLALite/assessment/monitor"
 	"SLALite/assessment/monitor/genericadapter"
+	"SLALite/assessment/monitor/prometheus"
 	"SLALite/assessment/notifier"
 	"SLALite/assessment/notifier/lognotifier"
 	"SLALite/assessment/notifier/rest"
@@ -77,9 +78,8 @@ func main() {
 	}
 
 	validater := model.NewDefaultValidator(config.GetBool(utils.ExternalIDsPropertyName), true)
-	adapter := genericadapter.New(
-		genericadapter.DummyRetriever{Size: 3}.Retrieve(),
-		genericadapter.Identity)
+
+	adapter := buildAdapter(config)
 
 	var notifier notifier.ViolationNotifier
 	if config.GetString(rest.NotificationURLPropertyName) != "" {
@@ -95,6 +95,23 @@ func main() {
 	}
 }
 
+func buildAdapter(config *viper.Viper) monitor.MonitoringAdapter {
+	aType := config.GetString(utils.AdapterTypePropertyName)
+	switch aType {
+	case prometheus.Name:
+		adapter := genericadapter.New(
+			prometheus.New(config).Retrieve(),
+			genericadapter.Identity)
+		return adapter
+	default:
+		adapter := genericadapter.New(
+			genericadapter.DummyRetriever{Size: 3}.Retrieve(),
+			genericadapter.Identity)
+		return adapter
+	}
+
+}
+
 //
 // Creates the main Viper configuration.
 // file: if set, is the path to a configuration file. If not set, paths and basename will be used
@@ -108,6 +125,7 @@ func createMainConfig(file *string, paths *string, basename *string) *viper.Vipe
 	config.AutomaticEnv()
 	config.SetDefault(utils.CheckPeriodPropertyName, utils.DefaultCheckPeriod)
 	config.SetDefault(utils.RepositoryTypePropertyName, utils.DefaultRepositoryType)
+	config.SetDefault(utils.AdapterTypePropertyName, utils.DefaultAdapterType)
 	config.SetDefault(utils.ExternalIDsPropertyName, utils.DefaultExternalIDs)
 
 	if *file != "" {
@@ -131,14 +149,16 @@ func logMainConfig(config *viper.Viper) {
 
 	checkPeriod := config.GetDuration(utils.CheckPeriodPropertyName)
 	repoType := config.GetString(utils.RepositoryTypePropertyName)
+	adapterType := config.GetString(utils.AdapterTypePropertyName)
 	externalIDs := config.GetBool(utils.ExternalIDsPropertyName)
 
 	log.Infof("SLALite initialization\n"+
 		"\tConfigfile: %s\n"+
 		"\tRepository type: %s\n"+
+		"\tAdapter type: %s\n"+
 		"\tExternal IDs: %v\n"+
 		"\tCheck period:%d\n",
-		config.ConfigFileUsed(), repoType, externalIDs, checkPeriod)
+		config.ConfigFileUsed(), repoType, adapterType, externalIDs, checkPeriod)
 
 	caPath := config.GetString(utils.CAPathPropertyName)
 	if caPath != "" {

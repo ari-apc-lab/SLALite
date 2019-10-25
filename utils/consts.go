@@ -28,6 +28,9 @@ const (
 	// DefaultRepositoryType is the name of the default repository
 	DefaultRepositoryType string = "memory"
 
+	// DefaultAdapterType is the name of the default adapter
+	DefaultAdapterType string = "dummy"
+
 	// DefaultExternalIDs is the default value of externalIDs
 	DefaultExternalIDs bool = false
 
@@ -36,6 +39,9 @@ const (
 
 	// RepositoryTypePropertyName is the name of the property repository type
 	RepositoryTypePropertyName = "repository"
+
+	// AdapterTypePropertyName is the name of the property adater type
+	AdapterTypePropertyName = "adapter"
 
 	// ExternalIDsPropertyName is a boolean value that indicates if the used repository
 	// auto assigns the ID of entities when they are stored on repository
