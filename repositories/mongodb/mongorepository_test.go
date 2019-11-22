@@ -19,6 +19,7 @@ This tests mongorepository, making use of the repository_testbase file.
 
 To run this test, set up a mongodb and set env var SLA_REPOSITORY=mongodb.
 If mongodb is not accessible at localhost:27017, set SLA_CONNECTION=<host>
+It is recommended to set SLA_CLEAR_ON_BOOT=1
 
 To test other repository, copy this file, create the repository in TestMain
 and remove/add methods as necessary.
@@ -92,16 +93,16 @@ func TestRepository(t *testing.T) {
 	t.Run("DeleteAgreementNotExists", ctx.TestDeleteAgreementNotExists)
 
 	/* Violations */
-	// t.Run("CreateViolation", ctx.TestCreateViolation)
-	// t.Run("CreateViolationExists", ctx.TestCreateViolationExists)
+	t.Run("CreateViolation", ctx.TestCreateViolation)
+	t.Run("CreateViolationExists", ctx.TestCreateViolationExists)
 
-	// t.Run("GetViolation", ctx.TestGetViolation)
-	// t.Run("GetViolationNotExists", ctx.TestGetViolationNotExists)
+	t.Run("GetViolation", ctx.TestGetViolation)
+	t.Run("GetViolationNotExists", ctx.TestGetViolationNotExists)
 
 	/* Templates */
-	// t.Run("CreateTemplate", ctx.TestCreateTemplate)
-	// t.Run("CreateTemplateExists", ctx.TestCreateTemplateExists)
-	// t.Run("GetAllTemplates", ctx.TestGetAllTemplates)
-	// t.Run("GetTemplate", ctx.TestGetTemplate)
-	// t.Run("GetTemplateNotExists", ctx.TestGetTemplateNotExists)
+	t.Run("CreateTemplate", ctx.TestCreateTemplate)
+	t.Run("CreateTemplateExists", ctx.TestCreateTemplateExists)
+	t.Run("GetAllTemplates", ctx.TestGetAllTemplates)
+	t.Run("GetTemplate", ctx.TestGetTemplate)
+	t.Run("GetTemplateNotExists", ctx.TestGetTemplateNotExists)
 }

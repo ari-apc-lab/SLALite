@@ -598,6 +598,10 @@ func testGetTemplateExists(t *testing.T) {
 	 */
 	var template model.Template
 	_ = json.NewDecoder(res.Body).Decode(&template)
+	/* avoid comparison problems */
+	if t1.Constraints == nil && len(t1.Constraints) == 0 {
+		template.Constraints = t1.Constraints
+	}
 	if !reflect.DeepEqual(t1, template) {
 		t.Errorf("Expected: %#v. Actual: %#v", t1, template)
 	}

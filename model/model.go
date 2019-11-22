@@ -283,7 +283,7 @@ func (v MetricValue) String() string {
 // Violation is generated when a guarantee term is not fulfilled
 // swagger:model
 type Violation struct {
-	Id          string        `json:"id"`
+	Id          string        `json:"id" bson:"_id"`
 	AgreementId string        `json:"agreement_id"`
 	Guarantee   string        `json:"guarantee"`
 	Datetime    time.Time     `json:"datetime"`

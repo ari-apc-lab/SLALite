@@ -21,7 +21,6 @@ package mongodb
 
 import (
 	"SLALite/model"
-	"fmt"
 
 	log "github.com/sirupsen/logrus"
 
@@ -37,6 +36,8 @@ const (
 	repositoryDbName        string = "slalite"
 	providersCollectionName string = "Providers"
 	agreementCollectionName string = "Agreements"
+	templateCollectionName  string = "Templates"
+	violationCollectionName string = "Violations"
 
 	mongoConfigName string = "mongodb.yml"
 
@@ -275,7 +276,8 @@ error != nil on error;
 error is sql.ErrNoRows if the Violation already exists
 */
 func (r MongoDBRepository) CreateViolation(v *model.Violation) (*model.Violation, error) {
-	return nil, fmt.Errorf("Not implemented")
+	res, err := r.create(violationCollectionName, v)
+	return res.(*model.Violation), err
 }
 
 /*
@@ -285,7 +287,8 @@ error != nil on error;
 error is sql.ErrNoRows if the Violation is not found
 */
 func (r MongoDBRepository) GetViolation(id string) (*model.Violation, error) {
-	return nil, fmt.Errorf("Not implemented")
+	res, err := r.get(violationCollectionName, id, new(model.Violation))
+	return res.(*model.Violation), err
 }
 
 /*
@@ -310,7 +313,8 @@ The list is empty when there are no templates;
 error != nil on error
 */
 func (r MongoDBRepository) GetAllTemplates() (model.Templates, error) {
-	return nil, fmt.Errorf("Not implemented")
+	res, err := r.getAll(templateCollectionName, new(model.Templates))
+	return *((res).(*model.Templates)), err
 }
 
 /*
@@ -320,7 +324,8 @@ error != nil on error;
 error is sql.ErrNoRows if the Template is not found
 */
 func (r MongoDBRepository) GetTemplate(id string) (*model.Template, error) {
-	return nil, fmt.Errorf("Not implemented")
+	res, err := r.get(templateCollectionName, id, new(model.Template))
+	return res.(*model.Template), err
 }
 
 /*
@@ -330,5 +335,6 @@ error != nil on error;
 error is sql.ErrNoRows if the Template already exists
 */
 func (r MongoDBRepository) CreateTemplate(template *model.Template) (*model.Template, error) {
-	return nil, fmt.Errorf("Not implemented")
+	res, err := r.create(templateCollectionName, template)
+	return res.(*model.Template), err
 }
