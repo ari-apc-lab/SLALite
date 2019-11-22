@@ -147,6 +147,13 @@ func TestAgreement(t *testing.T) {
 	a.Name = "name1"
 	a.Details.Name = "name2"
 	checkNumber(t, &a, 1)
+
+	a.Name = a.Details.Name
+	a.Assessment.MonitoringURL = "not-a-valid-url"
+	checkNumber(t, &a, 1)
+
+	a.Assessment.MonitoringURL = "http://localhost:9090/graph"
+	checkNumber(t, &a, 0)
 }
 
 func TestTemplate(test *testing.T) {

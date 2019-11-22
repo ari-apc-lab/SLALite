@@ -192,6 +192,7 @@ type Agreement struct {
 type Assessment struct {
 	FirstExecution time.Time `json:"first_execution"`
 	LastExecution  time.Time `json:"last_execution"`
+	MonitoringURL  string    `json:"monitoring_url,omitempty"`
 	// Guarantees may be nil. Use Assessment.SetGuarantee to create if needed.
 	Guarantees map[string]AssessmentGuarantee `json:"guarantees,omitempty"`
 }

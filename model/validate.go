@@ -16,7 +16,10 @@ limitations under the License.
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 /*
 Validator is the interface that contains validate functions for the model entities.
@@ -134,6 +137,12 @@ func (val DefaultValidator) ValidateAgreement(a *Agreement, mode ValidationMode)
 
 // ValidateAssessment implements model.Validator.ValidateAssessment
 func (val DefaultValidator) ValidateAssessment(as *Assessment, mode ValidationMode) []error {
+	if as.MonitoringURL != "" {
+		_, err := url.ParseRequestURI(as.MonitoringURL)
+		if err != nil {
+			return []error{err}
+		}
+	}
 	return []error{}
 }
 

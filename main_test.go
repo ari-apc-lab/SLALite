@@ -20,6 +20,7 @@ import (
 	"SLALite/utils"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -231,6 +232,7 @@ func TestAgreements(t *testing.T) {
 	t.Run("Fix issue - Comparisons operators escaped", testAgreementNotEscaped)
 	t.Run("UpdateAgreementNotExist", testUpdateAgreementNotExist)
 	t.Run("UpdateAgreementExist", testUpdateAgreementExist)
+	t.Run("UpdateAgreementSetMonitoringURL", testUpdateAgreementMonitoring)
 	t.Run("StartAgreementNotExist", testStartAgreementNotExist)
 	t.Run("StartAgreementExist", testStartAgreementExist)
 	t.Run("StopAgreementNotExist", testStopAgreementNotExist)
@@ -482,7 +484,7 @@ func testUpdateAgreementExist(t *testing.T) {
 		t.Error("Unexpected marshalling error")
 	}
 
-	req, _ := http.NewRequest("PUT", "/agreements/a01", bytes.NewBuffer(body))
+	req, _ := http.NewRequest("PATCH", "/agreements/a01", bytes.NewBuffer(body))
 	res := request(req)
 
 	checkStatus(t, http.StatusOK, res.Code)
@@ -495,7 +497,7 @@ func testUpdateAgreementExist(t *testing.T) {
 	// ---
 
 	body2 := "{\"state\": \"start\"}" // any unrecognized status equals STOPPED
-	req, _ = http.NewRequest("PUT", "/agreements/a01", strings.NewReader(body2))
+	req, _ = http.NewRequest("PATCH", "/agreements/a01", strings.NewReader(body2))
 	res = request(req)
 
 	checkStatus(t, http.StatusOK, res.Code)
@@ -503,6 +505,30 @@ func testUpdateAgreementExist(t *testing.T) {
 	agreement, _ = repo.GetAgreement("a01")
 	if !agreement.IsStopped() {
 		t.Errorf("Expected stopped agreement but it is %s", agreement.State)
+	}
+
+}
+
+func testUpdateAgreementMonitoring(t *testing.T) {
+	url := "http://localhost:9090"
+	body := fmt.Sprintf(
+		"{\"state\": \"%s\", \"assessment\": { \"monitoring_url\": \"%s\"}}",
+		"started",
+		url)
+	req, _ := http.NewRequest("PATCH", "/agreements/a01", strings.NewReader(body))
+	res := request(req)
+	var e ApiError
+	_ = json.NewDecoder(res.Body).Decode(&e)
+
+	checkStatus(t, http.StatusOK, res.Code)
+
+	agreement, _ := repo.GetAgreement("a01")
+	if !agreement.IsStarted() {
+		t.Errorf("Expected started agreement but it is %s", agreement.State)
+	}
+	if agreement.Assessment.MonitoringURL != url {
+		t.Errorf("Expected monitoringURL = %s, but it is %s",
+			url, agreement.Assessment.MonitoringURL)
 	}
 
 }

@@ -121,7 +121,7 @@ Add an agreement (agreement below is stopped):
 
 Change agreement state:
 
-    curl -k http://localhost:8090/agreements/a02 -X PUT -d'{"state":"started"}'
+    curl -k http://localhost:8090/agreements/a02 -X PATCH -d'{"state":"started"}'
 
 Get agreements:
 

@@ -147,10 +147,14 @@ func (a *App) initialize(repository model.IRepository) {
 	a.Router.Methods("GET").Path("/agreements").Handler(logger(a.GetAgreements))
 	a.Router.Methods("GET").Path("/agreements/{id}").Handler(logger(a.GetAgreement))
 	a.Router.Methods("POST").Path("/agreements").Handler(logger(a.CreateAgreement))
+	a.Router.Methods("PATCH").Path("/agreements/{id}").Handler(logger(a.UpdateAgreement))
+
+	// All these PUT below are deprecated, and superseded by PATCH above
 	a.Router.Methods("PUT").Path("/agreements/{id}/start").Handler(logger(a.StartAgreement))
 	a.Router.Methods("PUT").Path("/agreements/{id}/stop").Handler(logger(a.StopAgreement))
 	a.Router.Methods("PUT").Path("/agreements/{id}/terminate").Handler(logger(a.TerminateAgreement))
 	a.Router.Methods("PUT").Path("/agreements/{id}").Handler(logger(a.UpdateAgreement))
+
 	a.Router.Methods("DELETE").Path("/agreements/{id}").Handler(logger(a.DeleteAgreement))
 	a.Router.Methods("GET").Path("/agreements/{id}/details").Handler(logger(a.GetAgreementDetails))
 
@@ -532,11 +536,13 @@ func (a *App) DeleteAgreement(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// UpdateAgreement updates the only field updateable by REST in an agreement: the state.
+// UpdateAgreement updates the only fields updateable by REST in an agreement: state
+// and assessment.monitoringURL.
 // The Id in the body is ignored; only the id path is taken into account.
-// swagger:operation PUT /agreements/{id} updateAgreement
+// swagger:operation PATCH /agreements/{id} updateAgreement
 //
-// Updates information in the agreement whose ID is passed as parameter. Only state is updated.
+// Updates information in the agreement whose ID is passed as parameter.
+// Only state and assessment.monitoringURL are updated.
 //
 // ---
 // produces:
@@ -561,15 +567,27 @@ func (a *App) DeleteAgreement(w http.ResponseWriter, r *http.Request) {
 //   '404' :
 //     description: Agreement not found
 func (a *App) UpdateAgreement(w http.ResponseWriter, r *http.Request) {
-	var agreement model.Agreement
+	var input model.Agreement
 
 	a.updateEntity(w, r,
 		func() error {
-			return json.NewDecoder(r.Body).Decode(&agreement)
+			return json.NewDecoder(r.Body).Decode(&input)
 		},
 		func(id string) (model.Identity, error) {
-			newState := agreement.State
-			return a.Repository.UpdateAgreementState(id, newState)
+			newState := input.State
+			ag, err := a.Repository.UpdateAgreementState(id, newState)
+			if err != nil {
+				return ag, err
+			}
+			modified := false
+			if input.Assessment.MonitoringURL != "" {
+				ag.Assessment.MonitoringURL = input.Assessment.MonitoringURL
+				modified = true
+			}
+			if modified {
+				ag, err = a.Repository.UpdateAgreement(ag)
+			}
+			return ag, err
 		})
 }
 
