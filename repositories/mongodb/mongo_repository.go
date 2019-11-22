@@ -46,13 +46,13 @@ const (
 	clearOnBoot   string = "clear_on_boot"
 )
 
-//MongoDBRepository contains the repository persistence implementation based on MongoDB
-type MongoDBRepository struct {
+//Repository contains the repository persistence implementation based on MongoDB
+type Repository struct {
 	session  *mgo.Session
 	database *mgo.Database
 }
 
-// NewDefaultConfig gets a default configuration for a MongoDBRepository
+// NewDefaultConfig gets a default configuration for a Repository
 func NewDefaultConfig() (*viper.Viper, error) {
 	config := viper.New()
 
@@ -77,8 +77,8 @@ func setDefaults(config *viper.Viper) {
 	config.SetDefault(clearOnBoot, false)
 }
 
-// New creates a new instance of the MongoDBRepository with the database configurarion read from a configuration file
-func New(config *viper.Viper) (MongoDBRepository, error) {
+// New creates a new instance of the Repository with the database configurarion read from a configuration file
+func New(config *viper.Viper) (Repository, error) {
 	if config == nil {
 		config, _ = NewDefaultConfig()
 	} else {
@@ -87,7 +87,7 @@ func New(config *viper.Viper) (MongoDBRepository, error) {
 
 	logConfig(config)
 
-	repo := new(MongoDBRepository)
+	repo := new(Repository)
 
 	session, err := mgo.Dial(config.GetString(connectionURL))
 	if err != nil {
@@ -118,16 +118,16 @@ func logConfig(config *viper.Viper) {
 		config.GetString(mongoDatabase), config.GetBool(clearOnBoot))
 }
 
-func (r MongoDBRepository) getList(collection string, query, result interface{}) (interface{}, error) {
+func (r Repository) getList(collection string, query, result interface{}) (interface{}, error) {
 	err := r.database.C(collection).Find(query).All(result)
 	return result, err
 }
 
-func (r MongoDBRepository) getAll(collection string, result interface{}) (interface{}, error) {
+func (r Repository) getAll(collection string, result interface{}) (interface{}, error) {
 	return r.getList(collection, bson.M{}, result)
 }
 
-func (r MongoDBRepository) get(collection string, id string, result model.Identity) (model.Identity, error) {
+func (r Repository) get(collection string, id string, result model.Identity) (model.Identity, error) {
 	err := r.database.C(collection).FindId(id).One(result)
 	if err == mgo.ErrNotFound {
 		return result, model.ErrNotFound
@@ -136,7 +136,7 @@ func (r MongoDBRepository) get(collection string, id string, result model.Identi
 	return result, err
 }
 
-func (r MongoDBRepository) create(collection string, object model.Identity) (model.Identity, error) {
+func (r Repository) create(collection string, object model.Identity) (model.Identity, error) {
 	_, err := r.get(collection, object.GetId(), object)
 	if err != model.ErrNotFound {
 		return object, model.ErrAlreadyExist
@@ -145,7 +145,7 @@ func (r MongoDBRepository) create(collection string, object model.Identity) (mod
 	return object, errCreate
 }
 
-func (r MongoDBRepository) update(collection, id string, upd interface{}) error {
+func (r Repository) update(collection, id string, upd interface{}) error {
 	err := r.database.C(collection).UpdateId(id, upd)
 	if err == mgo.ErrNotFound {
 		return model.ErrNotFound
@@ -153,7 +153,7 @@ func (r MongoDBRepository) update(collection, id string, upd interface{}) error 
 	return err
 }
 
-func (r MongoDBRepository) delete(collection, id string) error {
+func (r Repository) delete(collection, id string) error {
 	error := r.database.C(collection).RemoveId(id)
 	if error == mgo.ErrNotFound {
 		return model.ErrNotFound
@@ -168,7 +168,7 @@ GetAllProviders returns the list of providers.
 The list is empty when there are no providers;
 error != nil on error
 */
-func (r MongoDBRepository) GetAllProviders() (model.Providers, error) {
+func (r Repository) GetAllProviders() (model.Providers, error) {
 	res, err := r.getAll(providersCollectionName, new(model.Providers))
 	return *((res).(*model.Providers)), err
 }
@@ -179,7 +179,7 @@ GetProvider returns the Provider identified by id.
 error != nil on error;
 error is sql.ErrNoRows if the provider is not found
 */
-func (r MongoDBRepository) GetProvider(id string) (*model.Provider, error) {
+func (r Repository) GetProvider(id string) (*model.Provider, error) {
 	res, err := r.get(providersCollectionName, id, new(model.Provider))
 	return res.(*model.Provider), err
 }
@@ -190,7 +190,7 @@ CreateProvider stores a new provider.
 error != nil on error;
 error is sql.ErrNoRows if the provider already exists
 */
-func (r MongoDBRepository) CreateProvider(provider *model.Provider) (*model.Provider, error) {
+func (r Repository) CreateProvider(provider *model.Provider) (*model.Provider, error) {
 	res, err := r.create(providersCollectionName, provider)
 	return res.(*model.Provider), err
 }
@@ -201,7 +201,7 @@ DeleteProvider deletes from the repository the provider whose id is provider.Id.
 error != nil on error;
 error is sql.ErrNoRows if the provider does not exist.
 */
-func (r MongoDBRepository) DeleteProvider(provider *model.Provider) error {
+func (r Repository) DeleteProvider(provider *model.Provider) error {
 	return r.delete(providersCollectionName, provider.Id)
 }
 
@@ -211,7 +211,7 @@ GetAllAgreements returns the list of agreements.
 The list is empty when there are no agreements;
 error != nil on error
 */
-func (r MongoDBRepository) GetAllAgreements() (model.Agreements, error) {
+func (r Repository) GetAllAgreements() (model.Agreements, error) {
 	res, err := r.getAll(agreementCollectionName, new(model.Agreements))
 	return *((res).(*model.Agreements)), err
 }
@@ -222,7 +222,7 @@ GetAgreement returns the Agreement identified by id.
 error != nil on error;
 error is sql.ErrNoRows if the Agreement is not found
 */
-func (r MongoDBRepository) GetAgreement(id string) (*model.Agreement, error) {
+func (r Repository) GetAgreement(id string) (*model.Agreement, error) {
 	res, err := r.get(agreementCollectionName, id, new(model.Agreement))
 	return res.(*model.Agreement), err
 }
@@ -232,7 +232,7 @@ GetAgreementsByState returns the agreements that have one of the items in states
 
 error != nil on error;
 */
-func (r MongoDBRepository) GetAgreementsByState(states ...model.State) (model.Agreements, error) {
+func (r Repository) GetAgreementsByState(states ...model.State) (model.Agreements, error) {
 	output := new(model.Agreements)
 
 	query := bson.M{"state": bson.M{"$in": states}}
@@ -246,7 +246,7 @@ CreateAgreement stores a new Agreement.
 error != nil on error;
 error is sql.ErrNoRows if the Agreement already exists
 */
-func (r MongoDBRepository) CreateAgreement(agreement *model.Agreement) (*model.Agreement, error) {
+func (r Repository) CreateAgreement(agreement *model.Agreement) (*model.Agreement, error) {
 	res, err := r.create(agreementCollectionName, agreement)
 	return res.(*model.Agreement), err
 }
@@ -254,7 +254,7 @@ func (r MongoDBRepository) CreateAgreement(agreement *model.Agreement) (*model.A
 /*
 UpdateAgreement updates the information of an already saved instance of an agreement
 */
-func (r MongoDBRepository) UpdateAgreement(agreement *model.Agreement) (*model.Agreement, error) {
+func (r Repository) UpdateAgreement(agreement *model.Agreement) (*model.Agreement, error) {
 	err := r.update(agreementCollectionName, agreement.Id, agreement)
 	return agreement, err
 }
@@ -265,7 +265,7 @@ DeleteAgreement deletes from the repository the Agreement whose id is provider.I
 error != nil on error;
 error is sql.ErrNoRows if the Agreement does not exist.
 */
-func (r MongoDBRepository) DeleteAgreement(agreement *model.Agreement) error {
+func (r Repository) DeleteAgreement(agreement *model.Agreement) error {
 	return r.delete(agreementCollectionName, agreement.Id)
 }
 
@@ -275,7 +275,7 @@ CreateViolation stores a new Violation.
 error != nil on error;
 error is sql.ErrNoRows if the Violation already exists
 */
-func (r MongoDBRepository) CreateViolation(v *model.Violation) (*model.Violation, error) {
+func (r Repository) CreateViolation(v *model.Violation) (*model.Violation, error) {
 	res, err := r.create(violationCollectionName, v)
 	return res.(*model.Violation), err
 }
@@ -286,7 +286,7 @@ GetViolation returns the Violation identified by id.
 error != nil on error;
 error is sql.ErrNoRows if the Violation is not found
 */
-func (r MongoDBRepository) GetViolation(id string) (*model.Violation, error) {
+func (r Repository) GetViolation(id string) (*model.Violation, error) {
 	res, err := r.get(violationCollectionName, id, new(model.Violation))
 	return res.(*model.Violation), err
 }
@@ -294,7 +294,7 @@ func (r MongoDBRepository) GetViolation(id string) (*model.Violation, error) {
 /*
 UpdateAgreementState transits the state of the agreement
 */
-func (r MongoDBRepository) UpdateAgreementState(id string, newState model.State) (*model.Agreement, error) {
+func (r Repository) UpdateAgreementState(id string, newState model.State) (*model.Agreement, error) {
 
 	var err error
 	var agreement *model.Agreement
@@ -312,7 +312,7 @@ GetAllTemplates returns the list of templates.
 The list is empty when there are no templates;
 error != nil on error
 */
-func (r MongoDBRepository) GetAllTemplates() (model.Templates, error) {
+func (r Repository) GetAllTemplates() (model.Templates, error) {
 	res, err := r.getAll(templateCollectionName, new(model.Templates))
 	return *((res).(*model.Templates)), err
 }
@@ -323,7 +323,7 @@ GetTemplate returns the Template identified by id.
 error != nil on error;
 error is sql.ErrNoRows if the Template is not found
 */
-func (r MongoDBRepository) GetTemplate(id string) (*model.Template, error) {
+func (r Repository) GetTemplate(id string) (*model.Template, error) {
 	res, err := r.get(templateCollectionName, id, new(model.Template))
 	return res.(*model.Template), err
 }
@@ -334,7 +334,7 @@ CreateTemplate stores a new Template.
 error != nil on error;
 error is sql.ErrNoRows if the Template already exists
 */
-func (r MongoDBRepository) CreateTemplate(template *model.Template) (*model.Template, error) {
+func (r Repository) CreateTemplate(template *model.Template) (*model.Template, error) {
 	res, err := r.create(templateCollectionName, template)
 	return res.(*model.Template), err
 }
