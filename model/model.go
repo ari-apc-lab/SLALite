@@ -204,6 +204,7 @@ type AssessmentGuarantee struct {
 	FirstExecution time.Time  `json:"first_execution"`
 	LastExecution  time.Time  `json:"last_execution"`
 	LastValues     LastValues `json:"last_values,omitempty"`
+	LastViolation  *Violation `json:"last_violation,omitempty"`
 }
 
 // LastValues contain last values of variables in guarantee terms

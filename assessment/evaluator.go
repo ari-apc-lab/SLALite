@@ -89,12 +89,21 @@ func updateAssessment(a *model.Agreement, result amodel.Result, now time.Time) {
 	}
 	a.Assessment.LastExecution = now
 
-	for gtname, last := range result.LastValues {
-		updateAssessmentGuarantee(a, gtname, last, now)
+	for _, gt := range a.Details.Guarantees {
+		gtname := gt.Name
+		last := result.LastValues[gtname]
+
+		violations := []model.Violation{}
+		if violated, ok := result.Violated[gtname]; ok {
+			violations = violated.Violations
+		}
+		updateAssessmentGuarantee(a, gtname, last, violations, now)
 	}
 }
 
-func updateAssessmentGuarantee(a *model.Agreement, gtname string, last amodel.ExpressionData, now time.Time) {
+func updateAssessmentGuarantee(a *model.Agreement, gtname string, last amodel.ExpressionData,
+	violations []model.Violation, now time.Time) {
+
 	ag := a.Assessment.GetGuarantee(gtname)
 	ag.LastExecution = now
 	if ag.FirstExecution.IsZero() {
@@ -102,6 +111,9 @@ func updateAssessmentGuarantee(a *model.Agreement, gtname string, last amodel.Ex
 	}
 	for _, v := range last {
 		ag.LastValues[v.Key] = v
+	}
+	if len(violations) > 0 {
+		ag.LastViolation = &violations[len(violations)-1]
 	}
 	a.Assessment.SetGuarantee(gtname, ag)
 }
