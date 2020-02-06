@@ -35,7 +35,8 @@ func TestNew(t *testing.T) {
 func TestSend(t *testing.T) {
 
 	Init()
-	result, _ := assessment.EvaluateAgreement(&agreement, ma, time.Now())
+	cfg := assessment.Config{Adapter: ma, Now: time.Now()}
+	result, _ := assessment.EvaluateAgreement(&agreement, cfg)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(f))
 	server.Start()
 	defer server.Close()
@@ -57,7 +58,8 @@ func TestSendEmpty(t *testing.T) {
 
 func TestSendWrong(t *testing.T) {
 	Init()
-	result, _ := assessment.EvaluateAgreement(&agreement, ma, time.Now())
+	cfg := assessment.Config{Adapter: ma, Now: time.Now()}
+	result, _ := assessment.EvaluateAgreement(&agreement, cfg)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(g))
 	server.Start()
 	defer server.Close()
@@ -72,7 +74,8 @@ func TestSendIntegration(t *testing.T) {
 	if !ok {
 		t.Skip("Skipping integration test")
 	}
-	result, _ := assessment.EvaluateAgreement(&agreement, ma, time.Now())
+	cfg := assessment.Config{Adapter: ma, Now: time.Now()}
+	result, _ := assessment.EvaluateAgreement(&agreement, cfg)
 
 	not := _new(url)
 	not.NotifyViolations(&agreement, &result)

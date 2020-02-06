@@ -55,8 +55,9 @@ func main() {
 	logMainConfig(config)
 
 	singlefile := config.GetBool(utils.SingleFilePropertyName)
-	checkPeriod := config.GetDuration(utils.CheckPeriodPropertyName)
+	checkPeriod := asSeconds(config, utils.CheckPeriodPropertyName)
 	repoType := config.GetString(utils.RepositoryTypePropertyName)
+	trasientTime := asSeconds(config, utils.TransientTimePropertyName)
 
 	utils.AddTrustedCAs(config)
 
@@ -90,7 +91,13 @@ func main() {
 	repo, _ = validation.New(repo, validater)
 	if repo != nil {
 		a, _ := NewApp(config, repo, validater)
-		go createValidationThread(repo, adapter, notifier, checkPeriod)
+		aCfg := assessment.Config{
+			Repo:      repo,
+			Adapter:   adapter,
+			Notifier:  notifier,
+			Transient: trasientTime,
+		}
+		go createValidationThread(checkPeriod, aCfg)
 		a.Run()
 	}
 }
@@ -112,6 +119,19 @@ func buildAdapter(config *viper.Viper) monitor.MonitoringAdapter {
 
 }
 
+func asSeconds(config *viper.Viper, field string) time.Duration {
+
+	raw := config.GetString(field)
+	// if it is already a valid duration, return directly
+	if _, err := time.ParseDuration(raw); err == nil {
+		return config.GetDuration(field)
+	}
+
+	// if not, assume it is (decimal) number of seconds; read as ms and convert to seconds.
+	ms := config.GetFloat64(field)
+	return time.Duration(ms*1000) * time.Millisecond
+}
+
 //
 // Creates the main Viper configuration.
 // file: if set, is the path to a configuration file. If not set, paths and basename will be used
@@ -127,6 +147,7 @@ func createMainConfig(file *string, paths *string, basename *string) *viper.Vipe
 	config.SetDefault(utils.RepositoryTypePropertyName, utils.DefaultRepositoryType)
 	config.SetDefault(utils.AdapterTypePropertyName, utils.DefaultAdapterType)
 	config.SetDefault(utils.ExternalIDsPropertyName, utils.DefaultExternalIDs)
+	config.SetDefault(utils.TransientTimePropertyName, utils.DefaultTransientTime)
 
 	if *file != "" {
 		config.SetConfigFile(*file)
@@ -147,18 +168,20 @@ func createMainConfig(file *string, paths *string, basename *string) *viper.Vipe
 
 func logMainConfig(config *viper.Viper) {
 
-	checkPeriod := config.GetDuration(utils.CheckPeriodPropertyName)
+	checkPeriod := asSeconds(config, utils.CheckPeriodPropertyName)
 	repoType := config.GetString(utils.RepositoryTypePropertyName)
 	adapterType := config.GetString(utils.AdapterTypePropertyName)
 	externalIDs := config.GetBool(utils.ExternalIDsPropertyName)
+	transientTime := asSeconds(config, utils.TransientTimePropertyName)
 
 	log.Infof("SLALite initialization\n"+
 		"\tConfigfile: %s\n"+
 		"\tRepository type: %s\n"+
 		"\tAdapter type: %s\n"+
 		"\tExternal IDs: %v\n"+
-		"\tCheck period:%d\n",
-		config.ConfigFileUsed(), repoType, adapterType, externalIDs, checkPeriod)
+		"\tTransient time: %v\n"+
+		"\tCheck period:%v\n",
+		config.ConfigFileUsed(), repoType, adapterType, externalIDs, transientTime, checkPeriod)
 
 	caPath := config.GetString(utils.CAPathPropertyName)
 	if caPath != "" {
@@ -166,16 +189,15 @@ func logMainConfig(config *viper.Viper) {
 	}
 }
 
-func createValidationThread(repo model.IRepository, ma monitor.MonitoringAdapter,
-	not notifier.ViolationNotifier, checkPeriod time.Duration) {
+func createValidationThread(checkPeriod time.Duration, cfg assessment.Config) {
 
-	ticker := time.NewTicker(checkPeriod * time.Second)
+	ticker := time.NewTicker(checkPeriod)
 
 	for {
 		<-ticker.C
-		assessment.AssessActiveAgreements(repo, ma, not)
+		cfg.Now = time.Now()
+		assessment.AssessActiveAgreements(cfg)
 	}
-
 }
 
 func validateProviders(repo model.IRepository) {

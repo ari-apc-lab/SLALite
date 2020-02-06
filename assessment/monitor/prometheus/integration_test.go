@@ -51,6 +51,10 @@ func TestRetrieve2(t *testing.T) {
 	adapter := genericadapter.New(retr.Retrieve(), genericadapter.Identity)
 	now := time.Date(2019, 10, 29, 12, 5, 0, 0, time.Local)
 
-	result := assessment.AssessAgreement(&a, adapter, now)
+	cfg := assessment.Config{
+		Adapter: adapter,
+		Now:     now,
+	}
+	result := assessment.AssessAgreement(&a, cfg)
 	fmt.Printf("%#v", result)
 }

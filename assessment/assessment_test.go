@@ -90,15 +90,21 @@ func TestAssessActiveAgreements(t *testing.T) {
 		},
 	}
 
-	AssessActiveAgreements(repo, simpleadapter.New(m1), ValidationNotifier{Expected: map[string]map[string]int{
-		"aa01": map[string]int{
-			"TestGuarantee": 2,
-		},
-		"aa02": map[string]int{
-			"g1": 3,
-			"g2": 1,
-		},
-	}, T: t})
+	cfg := Config{
+		Repo:    repo,
+		Adapter: simpleadapter.New(m1),
+		Notifier: ValidationNotifier{Expected: map[string]map[string]int{
+			"aa01": map[string]int{
+				"TestGuarantee": 2,
+			},
+			"aa02": map[string]int{
+				"g1": 3,
+				"g2": 1,
+			},
+		}, T: t},
+		Now: time.Now(),
+	}
+	AssessActiveAgreements(cfg)
 }
 
 func TestAssessAgreement(t *testing.T) {
@@ -113,11 +119,11 @@ func TestAssessAgreement(t *testing.T) {
 	expectedLast := map[string]model.LastValues{}
 
 	a2.State = model.STOPPED
-	result := AssessAgreement(&a2, ma, t0)
+	result := AssessAgreement(&a2, Config{Adapter: ma, Now: t0})
 	checkAssessmentResult(t, &a2, result, model.STOPPED, expected, expectedLast)
 
 	a2.State = model.TERMINATED
-	result = AssessAgreement(&a2, ma, t0)
+	result = AssessAgreement(&a2, Config{Adapter: ma, Now: t0})
 	checkAssessmentResult(t, &a2, result, model.TERMINATED, expected, expectedLast)
 
 	a2.State = model.STARTED
@@ -127,18 +133,18 @@ func TestAssessAgreement(t *testing.T) {
 			"m": values[1]["m"],
 		},
 	}
-	result = AssessAgreement(&a2, ma, t0)
+	result = AssessAgreement(&a2, Config{Adapter: ma, Now: t0})
 	checkAssessmentResult(t, &a2, result, model.STARTED, expected, expectedLast)
 	checkTimes(t, &a2, t0, t0)
 
 	t1 := t_(1)
-	result = AssessAgreement(&a2, ma, t1)
+	result = AssessAgreement(&a2, Config{Adapter: ma, Now: t1})
 	checkTimes(t, &a2, t0, t1)
 
 	// check assessment without values
 	values = assessment_model.GuaranteeData{}
 	ma = simpleadapter.New(values)
-	result = AssessAgreement(&a2, ma, t0)
+	result = AssessAgreement(&a2, Config{Adapter: ma, Now: t0})
 }
 
 func checkAssessmentResult(t *testing.T, a *model.Agreement,
@@ -194,7 +200,7 @@ func TestAssessExpiredAgreement(t *testing.T) {
 	a2.State = model.STARTED
 	expiration := t_(-1)
 	a2.Details.Expiration = &expiration
-	result := AssessAgreement(&a2, ma, t0)
+	result := AssessAgreement(&a2, Config{Adapter: ma, Now: t0})
 	if a2.State != model.TERMINATED {
 		t.Errorf("Agreement in unexpected state. Expected: terminated. Actual: %v", a2.State)
 	}
@@ -209,7 +215,7 @@ func TestEvaluateAgreement(t *testing.T) {
 		{"m": model.MetricValue{Key: "m", Value: -1, DateTime: t_(1)}},
 	}
 	ma := simpleadapter.New(values)
-	invalid, err := EvaluateAgreement(&a1, ma, time.Now())
+	invalid, err := EvaluateAgreement(&a1, Config{Adapter: ma, Now: time.Now()})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -244,9 +250,44 @@ func TestEvaluateAgreementWithWrongValues(t *testing.T) {
 		{"n": model.MetricValue{Key: "n", Value: 1, DateTime: t_(0)}},
 	}
 	ma := simpleadapter.New(values)
-	_, err := EvaluateAgreement(&a1, ma, time.Now())
+	_, err := EvaluateAgreement(&a1, Config{Adapter: ma, Now: time.Now()})
 	if err == nil {
 		t.Errorf("Expected error evaluating agreement")
+	}
+}
+
+func TestAssessAgreementWithTransient(t *testing.T) {
+	a := a1 // copy of
+	a.State = model.STARTED
+
+	// First call to EvaluateAgreement
+	values := assessment_model.GuaranteeData{
+		{"m": model.MetricValue{Key: "m", Value: -1, DateTime: t_(0)}}, //should fail
+		{"m": model.MetricValue{Key: "m", Value: -2, DateTime: t_(1)}}, // should be skipped
+		{"m": model.MetricValue{Key: "m", Value: -3, DateTime: t_(2)}}, // should fail
+	}
+	ma1 := simpleadapter.New(values)
+	invalid := AssessAgreement(&a, Config{Adapter: ma1, Now: t0, Transient: 1.5 * 1000 * time.Millisecond})
+	expected := 2
+	actual := len(invalid.GetViolations())
+	if expected != actual {
+		t.Fatalf("Error in violations; expected: %d; actual: %d", expected, actual)
+	}
+
+	// Second call to EvaluateAgreement
+	values = assessment_model.GuaranteeData{
+		{"m": model.MetricValue{Key: "m", Value: -4, DateTime: t_(3)}}, //should be skipped
+		{"m": model.MetricValue{Key: "m", Value: -5, DateTime: t_(4)}}, // should fail
+	}
+	ma2 := simpleadapter.New(values)
+	invalid, err := EvaluateAgreement(&a, Config{Adapter: ma2, Now: t0, Transient: 1.5 * 1000 * time.Millisecond})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	expected = 1
+	actual = len(invalid.GetViolations())
+	if expected != actual {
+		t.Fatalf("Error in violations; expected: %d; actual: %d", expected, actual)
 	}
 }
 
@@ -256,7 +297,7 @@ func TestEvaluateGuarantee(t *testing.T) {
 		{"m": model.MetricValue{Key: "m", Value: -1, DateTime: t_(1)}},
 	}
 	ma := simpleadapter.New(values)
-	invalid, last, err := EvaluateGuarantee(&a1, a1.Details.Guarantees[0], ma, time.Now())
+	invalid, last, err := EvaluateGuarantee(&a1, a1.Details.Guarantees[0], ma, Config{Now: time.Now()})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -276,7 +317,7 @@ func TestEvaluateGuarantee(t *testing.T) {
 func TestEvaluateGuaranteeWithWrongExpression(t *testing.T) {
 	ma := simpleadapter.New(nil)
 	a := createAgreement("a01", p1, c2, "Agreement 01", "wrong expression >= 0")
-	_, _, err := EvaluateGuarantee(&a, a.Details.Guarantees[0], ma, time.Now())
+	_, _, err := EvaluateGuarantee(&a, a.Details.Guarantees[0], ma, Config{Now: time.Now()})
 	if err == nil {
 		t.Errorf("Expected error evaluating guarantee")
 	}
@@ -287,7 +328,7 @@ func TestEvaluateGuaranteeWithWrongValues(t *testing.T) {
 		{"n": model.MetricValue{Key: "n", Value: 1, DateTime: t_(0)}},
 	}
 	ma := simpleadapter.New(values)
-	_, _, err := EvaluateGuarantee(&a1, a1.Details.Guarantees[0], ma, time.Now())
+	_, _, err := EvaluateGuarantee(&a1, a1.Details.Guarantees[0], ma, Config{Now: time.Now()})
 	if err == nil {
 		t.Errorf("Expected error evaluating guarantee")
 	}

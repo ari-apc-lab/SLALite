@@ -125,7 +125,11 @@ func TestGenericAdapter(t *testing.T) {
 	a, _ := utils.ReadAgreement("testdata/a.json")
 
 	ma := ga.Initialize(&a)
-	assessment.EvaluateAgreement(&a, ma, time.Now())
+	cfg := assessment.Config{
+		Adapter: ma,
+		Now:     time.Now(),
+	}
+	assessment.EvaluateAgreement(&a, cfg)
 	/*
 	 * Just tests that nothing breaks
 	 */

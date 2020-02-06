@@ -83,8 +83,12 @@ Usage of SLALite:
   value to `mongodb` to use a MongoDB database.
 * `externalIDs` (default: `false`). Set this to true if the repository auto assign 
   the IDs of the saved entities.
-* `checkPeriod` (default: `60`). Sets the period in seconds of assessments 
-  executions.
+* `checkPeriod` (default: `60s`). Sets the period of assessments executions, in the
+  format of a time.Duration (e.g. 60s, 1.5m). If no unit is given, seconds are assumed.
+* `transientTime` (default: `0s`). Sets the transient time after a violation on a 
+  guarantee term is raised, in the format of a time.Duration (e.g. 60s, 1.5m). No more 
+  violations on that term will be raised while in the transient time. 
+  If no unit is given, seconds are assumed.
 * `CAPath`. Sets the value of a file path containing certificates of trusted
   CAs; to be used to connect as client to SSL servers whose certificate is
   not trusted by default (e.g. self-signed certificates)

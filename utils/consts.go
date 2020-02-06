@@ -23,7 +23,7 @@ const (
 	ConfigPrefix string = "sla"
 
 	// DefaultCheckPeriod is the default number of seconds of the periodic assessment execution
-	DefaultCheckPeriod time.Duration = 60
+	DefaultCheckPeriod time.Duration = 60 * time.Second
 
 	// DefaultRepositoryType is the name of the default repository
 	DefaultRepositoryType string = "memory"
@@ -33,6 +33,10 @@ const (
 
 	// DefaultExternalIDs is the default value of externalIDs
 	DefaultExternalIDs bool = false
+
+	// DefaultTransientTime is the default number of seconds after a violation
+	// to raise a violation for the same guarantee term
+	DefaultTransientTime time.Duration = 0
 
 	// CheckPeriodPropertyName is the name of the property CheckPeriod
 	CheckPeriodPropertyName = "checkPeriod"
@@ -46,6 +50,10 @@ const (
 	// ExternalIDsPropertyName is a boolean value that indicates if the used repository
 	// auto assigns the ID of entities when they are stored on repository
 	ExternalIDsPropertyName = "externalIDs"
+
+	// TransientTimePropertyName is the name of the property that holds the number of
+	// seconds to wait until a new violation for a guarantee term is raised
+	TransientTimePropertyName = "transientTime"
 
 	// SingleFilePropertyName is the name of the property single file
 	// If singlefile is set, all configuration is retrieved from a single file.
