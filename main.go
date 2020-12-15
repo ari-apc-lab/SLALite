@@ -22,7 +22,7 @@ import (
 	"SLALite/assessment/monitor/prometheus"
 	"SLALite/assessment/notifier"
 	"SLALite/assessment/notifier/lognotifier"
-	"SLALite/assessment/notifier/rest"
+	"SLALite/assessment/notifier/accounting"
 	"SLALite/model"
 	"SLALite/repositories/memrepository"
 	"SLALite/repositories/mongodb"
@@ -36,6 +36,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
+  	
 )
 
 // version and date are defined on compilation (see makefile)
@@ -43,6 +44,17 @@ var version string
 var date string
 
 func main() {
+
+
+//  fmt.Println("hello world")
+//  cmd := exec.Command("/bin/sh","apply_discount.sh", "HLRS", "hawk.hww.hlrs.de" ,"CPU", "26", "Percentage")
+//  cmd.Dir = "euxdat-accounting/"
+//  out, err := cmd.CombinedOutput()
+//  if err != nil {
+//      log.Println(err)
+//      fmt.Println(fmt.Sprint(err))
+//  }
+//  fmt.Printf("%s", out);
 
 	// TODO: Add windows path
 	configPath := flag.String("d", utils.UnixConfigPath, "Directories where to search config files")

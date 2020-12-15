@@ -110,8 +110,8 @@ func (r Retriever) Retrieve() genericadapter.Retrieve {
 		result := make(map[model.Variable][]model.MetricValue)
 		for _, item := range items {
 
-			url := fmt.Sprintf("%s/api/v1/query?query=%s&time=%s",
-				rootURL, item.Var.Metric, item.To.Format(time.RFC3339))
+			url := fmt.Sprintf("%s/api/v1/query?query=%s",
+				rootURL, item.Var.Metric)
 			query := r.request(url)
 			aux := translateVector(query, item.Var.Name)
 			result[item.Var] = aux

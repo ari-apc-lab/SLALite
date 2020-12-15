@@ -1,0 +1,6 @@
+adapter: prometheus
+prometheusUrl: http://prometheus.test.euxdat.eu
+checkPeriod: 5s
+port: 8094
+notifier: accounting
+notificationUrl: http://accounting.test.euxdat.eu/api/ui/#!
