@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: slalite-latest
+spec:
+  selector:
+    matchLabels:
+      app: slalite-latest
+  template:
+    metadata:
+      labels:
+        app: slalite-latest
+    spec:
+      #restartPolicy: OnFailure
+      containers:
+      - image: registry.test.euxdat.eu/euxdat/slalite:latest
+        name: slalite
+      imagePullSecrets:
+      - name: euxdatregistrykey
+
